@@ -1,0 +1,97 @@
+#include <iostream>
+#include <fstream>
+#include <sstream>
+#include <cmath>
+#include <iomanip> // For formatting output
+
+using namespace std;
+
+int main() {
+    // Open the input CSV file
+    ifstream inputFile("input.csv");
+    if (!inputFile) {
+        cerr << "Error: Could not open input.csv file!" << endl;
+        return 1;
+    }
+
+    // Open the output CSV file
+    ofstream outputFile("output.csv");
+    if (!outputFile) {
+        cerr << "Error: Could not open output.csv file!" << endl;
+        return 1;
+    }
+
+    // Write the header to the output CSV file
+    outputFile << "Row,Die Index,LLC X,LLC Y\n";
+
+    string line;
+    int rowNum = 1; // Track the row number for input data
+
+    // Read each row of the input CSV file
+    while (getline(inputFile, line)) {
+        stringstream ss(line);
+        string value;
+
+        double waferDiameter, dieWidth, dieHeight, shiftX, shiftY, refOffsetX, refOffsetY;
+
+        try {
+            // Parse waferDiameter
+            getline(ss, value, ',');
+            waferDiameter = stod(value);
+
+            // Parse dieWidth and dieHeight
+            getline(ss, value, ',');
+            dieWidth = stod(value);
+            getline(ss, value, ',');
+            dieHeight = stod(value);
+
+            // Parse shiftX and shiftY
+            getline(ss, value, ',');
+            shiftX = stod(value);
+            getline(ss, value, ',');
+            shiftY = stod(value);
+
+            // Parse refOffsetX and refOffsetY
+            getline(ss, value, ',');
+            refOffsetX = stod(value);
+            getline(ss, value, ',');
+            refOffsetY = stod(value);
+        } catch (const invalid_argument &e) {
+            cerr << "Error: Invalid number in input.csv file at row " << rowNum << "." << endl;
+            continue; // Skip this row and move to the next
+        }
+
+        // Compute wafer radius
+        double radius = waferDiameter / 2.0;
+
+        // Compute number of dies that fit in x and y directions
+        int diesX = ceil(waferDiameter / dieWidth);
+        int diesY = ceil(waferDiameter / dieHeight);
+
+        // Iterate through the die grid and calculate LLCs
+        for (int i = -diesX; i <= diesX; ++i) {
+            for (int j = -diesY; j <= diesY; ++j) {
+                double llcX = i * dieWidth + shiftX + refOffsetX;
+                double llcY = j * dieHeight + shiftY + refOffsetY;
+
+                // Check if die is within the wafer
+                double centerX = llcX + dieWidth / 2.0;
+                double centerY = llcY + dieHeight / 2.0;
+                if (centerX * centerX + centerY * centerY <= radius * radius) {
+                    // Write the results to the output CSV file
+                    outputFile << "Row " << rowNum << ",(" << i << "," << j << "),"
+                               << fixed << setprecision(4) << llcX << ","
+                               << fixed << setprecision(4) << llcY << "\n";
+                }
+            }
+        }
+
+        rowNum++; // Increment row number
+    }
+
+    inputFile.close();  // Close the input file
+    outputFile.close(); // Close the output file
+
+    cout << "Processing complete. Results saved in 'output.csv'." << endl;
+    return 0;
+}
